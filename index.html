@@ -9,64 +9,73 @@
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f0f0;
+            background-color: #000; /* Black background */
+            color: #fff; /* White text */
+            overflow: hidden;  /* Prevent scrollbars */
         }
 
         .container {
             display: flex; /* Use flexbox for side-by-side layout */
-            background-color: #fff;
+            background-color: #111; /* Dark container background */
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Darker shadow */
             text-align: center;
         }
 
         .roulette-container {
             flex: 1; /* Take up available space */
             margin-right: 20px; /* Space between roulette and sidebar */
+            overflow: hidden; /* Hide overflowing prize cells */
+            position: relative; /* Needed for absolute positioning */
         }
 
         #roulette {
-            width: 200px;
-            height: 200px;
-            border-radius: 50%;
-            border: 5px solid #333;
-            margin: 20px auto;
+            width: 100%; /* Fill container */
+            height: 100px; /* Set height for the drum */
+            overflow: hidden; /* Hide scrolling outside of the drum */
             position: relative;
-            overflow: hidden;
-            transition: transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
-        #roulette:after {
+        .prize-cell {
+            display: flex; /* Added to center text vertically */
+            align-items: center; /* Added to center text vertically */
+            justify-content: center; /* Added to center text horizontally */
+            width: 100px; /* Width of each cell */
+            height: 100px; /* Height of each cell - matches roulette */
+            border: 1px solid #333;
+            box-sizing: border-box; /* Include padding and border in width/height */
+            font-size: 16px;
+            text-align: center;
+            color: #fff; /* Text color */
+            background-color: #222; /* Dark cell background */
+            flex-shrink: 0; /* Prevent shrinking */
+        }
+
+        #prize-container {
+            display: flex; /* Arrange cells horizontally */
+            transition: transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth transition */
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #roulette::after {
             content: '';
             position: absolute;
-            top: -5px;
+            top: 0;
             left: 50%;
-            margin-left: -10px;
-            border-width: 15px 10px 0 10px;
-            border-style: solid;
-            border-color: #ff0000 transparent transparent transparent;
-        }
-
-        .segment {
-            position: absolute;
-            width: 50%;
-            height: 50%;
-            transform-origin: 100% 100%;
-            text-align: center;
-            line-height: 100px; /* Vertically center text */
-            font-size: 16px;
-            color: #fff;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            box-sizing: border-box; /* Include padding and border in element's total width and height */
+            width: 2px; /* Pointer width */
+            height: 100%;
+            background-color: red; /* Red pointer */
+            transform: translateX(-50%); /* Center the pointer */
+            z-index: 1; /* Ensure pointer is on top */
         }
 
         .sidebar {
             flex: 0.3; /* Take up 30% of the space */
             padding: 10px;
-            border-left: 1px solid #ccc;
+            border-left: 1px solid #555; /* Darker border */
         }
 
         button {
@@ -88,6 +97,7 @@
             margin-top: 20px;
             font-weight: bold;
         }
+
         #timer {
             margin-top: 10px;
             color: #888;
@@ -106,7 +116,9 @@
     <div class="roulette-container">
         <h1>Крутите рулетку и выигрывайте!</h1>
         <div id="roulette">
-            <!-- Сегменты будут добавлены JavaScript'ом -->
+            <div id="prize-container">
+                <!-- Prize cells will be added dynamically -->
+            </div>
         </div>
         <button id="spinButton">Крутить (Раз в 24 часа)</button>
         <div id="result"></div>
@@ -126,6 +138,7 @@
     const resultDiv = document.getElementById('result');
     const timerDiv = document.getElementById('timer');
     const balanceDiv = document.getElementById('balance');
+    const prizeContainer = document.getElementById('prize-container');
 
     let canSpin = true;
     let timeLeft = 0;
@@ -134,57 +147,56 @@
     const prizes = [
         {label: '10 ⭐', color: '#E91E63'},
         {label: '5 ⭐', color: '#9C27B0'},
-        {label: '💩', color: '#795548'}, //Poop
+        {label: '💩', color: '#795548'},
         {label: '1.5 ⭐', color: '#3F51B5'},
-        {label: '💩', color: '#795548'}, //Poop
+        {label: '💩', color: '#795548'},
         {label: '3 ⭐', color: '#03A9F4'},
-        {label: '💩', color: '#795548'}, //Poop
+        {label: '💩', color: '#795548'},
         {label: '0.8 ⭐', color: '#009688'},
         {label: '7 ⭐', color: '#607D8B'},
         {label: '2 ⭐', color: '#FF5722'}
     ];
 
-    // Function to create segments dynamically
-    function createSegments() {
-        const rouletteElement = document.getElementById('roulette');
-        const segmentCount = prizes.length;
-        let angle = 0;
-        const angleIncrement = 360 / segmentCount;
+    // Function to create prize cells dynamically
+    function createPrizeCells() {
+        const prizeCellWidth = 100; // Width of each cell in pixels
+        prizes.forEach(prize => {
+            const cell = document.createElement('div');
+            cell.classList.add('prize-cell');
+            cell.style.backgroundColor = prize.color;
 
-        prizes.forEach((prize, index) => {
-            const segment = document.createElement('div');
-            segment.classList.add('segment');
-            segment.style.backgroundColor = prize.color;
-            segment.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
-
-            // Add emoji for poop
-            if (prize.label === '💩') {segment.innerHTML = '<span class="emoji">💩</span>';
+            if (prize.label === '💩') {
+                cell.innerHTML = '<span class="emoji">💩</span>';
             } else {
-                segment.textContent = prize.label;
+                cell.textContent = prize.label;
             }
 
-            // Adjust text color based on background brightness
-            const bgColor = prize.color;
-            const brightness = calculateBrightness(bgColor);
-            segment.style.color = brightness > 128 ? '#000' : '#fff';
-
-            rouletteElement.appendChild(segment);
-            angle += angleIncrement;
+            prizeContainer.appendChild(cell);
         });
+
+        // Clone the prize cells to create a seamless loop
+        prizes.forEach(prize => {
+            const cell = document.createElement('div');
+            cell.classList.add('prize-cell');
+            cell.style.backgroundColor = prize.color;
+
+            if (prize.label === '💩') {
+                cell.innerHTML = '<span class="emoji">💩</span>';
+            } else {
+                cell.textContent = prize.label;
+            }
+
+            prizeContainer.appendChild(cell);
+        });
+
+
+        // Set the width of the prize container to accommodate all cells
+        prizeContainer.style.width = (prizes.length * 2 * prizeCellWidth) + 'px';
     }
 
-    // Function to calculate brightness of a color
-    function calculateBrightness(color) {
-        color = color.replace('#', '');
-        const r = parseInt(color.substring(0, 2), 16);
-        const g = parseInt(color.substring(2, 4), 16);
-        const b = parseInt(color.substring(4, 6), 16);
-        const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
-        return brightness;
-    }
+    // Call the function to create prize cells
+    createPrizeCells();
 
-    // Call the function to create segments when the page loads
-    createSegments();
 
     // Function to get the last spin time from local storage
     function getLastSpinTime() {
@@ -272,19 +284,30 @@
             spinButton.disabled = true;
             setLastSpinTime();
 
-            const randomDegree = Math.floor(Math.random() * 3600) + 3600;
-            roulette.style.transform = `rotate(${randomDegree}deg)`;
+            const prizeCellWidth = 100;
+            const numPrizes = prizes.length;
+            const randomOffset = Math.floor(Math.random() * numPrizes); // Randomize stopping point
+            const distance = numPrizes * prizeCellWidth + randomOffset * prizeCellWidth;  // Distance to scroll past + random stop
+
+            prizeContainer.style.transition = 'none'; //disable transition for initial move
+            prizeContainer.style.transform = `translateX(0px)`; //reset position
+
+            requestAnimationFrame(() => { //wait for the DOM to update
+                 prizeContainer.style.transition = `transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
+                 prizeContainer.style.transform = `translateX(-${distance}px)`;
+            });
 
             setTimeout(() => {
-                const winningIndex = Math.floor((randomDegree % 360) / (360 / prizes.length));
-                const winningPrize = prizes[prizes.length - 1 - winningIndex]; // Correct for reverse order
+                const winningIndex = randomOffset % numPrizes; // Index of the winning prize (accounting for offset)
+                const winningPrize = prizes[winningIndex];
+
                 let resultText = '';
                 if (winningPrize.label === '💩') {
                     resultText = 'Вы проиграли! <span class="emoji">💩</span>';
                 } else {
                     resultText = `Вы выиграли: ${winningPrize.label}!`;
                 }
-                resultDiv.innerHTML = resultText; // Use innerHTML for emoji
+                resultDiv.innerHTML = resultText;
 
                 // Send winning prize data to the bot
                 if (window.Telegram && window.Telegram.WebApp) {
