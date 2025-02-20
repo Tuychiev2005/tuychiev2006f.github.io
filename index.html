@@ -1,328 +1,134 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Рулетка</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рулетка со звездами</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            background-color: #000; /* Black background */
-            color: #fff; /* White text */
-            overflow: hidden;  /* Prevent scrollbars */
-        }
-
-        .container {
-            display: flex; /* Use flexbox for side-by-side layout */
-            background-color: #111; /* Dark container background */
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); /* Darker shadow */
-            text-align: center;
-        }
-
-        .roulette-container {
-            flex: 1; /* Take up available space */
-            margin-right: 20px; /* Space between roulette and sidebar */
-            overflow: hidden; /* Hide overflowing prize cells */
-            position: relative; /* Needed for absolute positioning */
-        }
-
-        #roulette {
-            width: 100%; /* Fill container */
-            height: 100px; /* Set height for the drum */
-            overflow: hidden; /* Hide scrolling outside of the drum */
-            position: relative;
-        }
-
-        .prize-cell {
-            display: flex; /* Added to center text vertically */
-            align-items: center; /* Added to center text vertically */
-            justify-content: center; /* Added to center text horizontally */
-            width: 100px; /* Width of each cell */
-            height: 100px; /* Height of each cell - matches roulette */
-            border: 1px solid #333;
-            box-sizing: border-box; /* Include padding and border in width/height */
-            font-size: 16px;
-            text-align: center;
-            color: #fff; /* Text color */
-            background-color: #222; /* Dark cell background */
-            flex-shrink: 0; /* Prevent shrinking */
-        }
-
-        #prize-container {
-            display: flex; /* Arrange cells horizontally */
-            transition: transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94); /* Smooth transition */
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-
-        #roulette::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 50%;
-            width: 2px; /* Pointer width */
-            height: 100%;
-            background-color: red; /* Red pointer */
-            transform: translateX(-50%); /* Center the pointer */
-            z-index: 1; /* Ensure pointer is on top */
-        }
-
-        .sidebar {
-            flex: 0.3; /* Take up 30% of the space */
-            padding: 10px;
-            border-left: 1px solid #555; /* Darker border */
-        }
-
-        button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #4CAF50;
+            justify-content: center;
+            height: 100vh;
+            background: radial-gradient(circle, #1a1a2e, #16213e, #0f3460);
+            background-image: url('photo.png');
             color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            font-family: Arial, sans-serif;
         }
-
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
+        .roulette-container {
+            position: relative;
+            width: 300px;
+            height: 405px;
+            overflow: hidden;
+            border: 3px solid #00ffff;
+            border-radius: 50px;
+            background-color: #222;
         }
-
-        #result {
+        .roulette {
+            display: flex;
+            flex-direction: column;
+            transition: transform 2s ease-out;
+        }
+        .ticket {
+            padding: 30px;
+            text-align: center;
+            background: #00bcd4;
+            margin: 5px;
+            border-radius: 50px;
+        }
+        .indicator {
+            position: absolute;
+            top: 50%;
+            left: -30px;
+            transform: translateY(-50%);
+            font-size: 30px;
+            color: gray;
+        }
+        .tracking-arrow {
+            position: absolute;
+            left: calc(100% + 10px);
+            font-size: 30px;
+            color: orange;
+            transition: top 2s ease-out;
+        }
+        .identifier {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 45px;
+            top: 50%;
+            border: 2px solid red;
+            border-radius: 50px;
+        }
+        .message {
             margin-top: 20px;
-            font-weight: bold;
-        }
-
-        #timer {
-            margin-top: 10px;
-            color: #888;
-        }
-
-        /* Emoji styles */
-        .emoji {
-            font-size: 20px; /* Adjust the size as needed */
-            vertical-align: middle; /* Align with text if any */
+            font-size: 18px;
+            color: yellow;
         }
     </style>
 </head>
 <body>
-
-<div class="container">
+    <h1>Рулетка со звездами</h1>
     <div class="roulette-container">
-        <h1>Крутите рулетку и выигрывайте!</h1>
-        <div id="roulette">
-            <div id="prize-container">
-                <!-- Prize cells will be added dynamically -->
-            </div>
-        </div>
-        <button id="spinButton">Крутить (Раз в 24 часа)</button>
-        <div id="result"></div>
-        <div id="timer"></div>
+        <div class="indicator">▶</div>
+        <div class="roulette" id="roulette"></div>
+        <div class="tracking-arrow" id="trackingArrow">▶</div>
+        <div class="identifier" id="identifier"></div>
     </div>
+    <button id="spinBtn" onclick="spinRoulette()">Крутить</button>
+    <div class="message" id="message"></div>
+    
+    <script>
+        let canSpin = true;
+        const initialTickets = [
+            "⭐ 10 звезд", "⭐ 5 звезд", "⭐ 1 звезда", "⭐ 20 звезд", "⭐ 50 звезд", "⭐ 100 звезд", "⭐ 500 звезд", "⭐ 1000 звезд", "⭐ 5000 звезд"
+        ];
 
-    <div class="sidebar">
-        <h2>Ваш баланс</h2>
-        <div id="balance">Загрузка...</div>
-        <p>Крутите рулетку раз в 24 часа, чтобы выиграть призы!</p>
-    </div>
-</div>
-
-<script>
-    const spinButton = document.getElementById('spinButton');
-    const roulette = document.getElementById('roulette');
-    const resultDiv = document.getElementById('result');
-    const timerDiv = document.getElementById('timer');
-    const balanceDiv = document.getElementById('balance');
-    const prizeContainer = document.getElementById('prize-container');
-
-    let canSpin = true;
-    let timeLeft = 0;
-    let timerInterval;
-
-    const prizes = [
-        {label: '10 ⭐', color: '#E91E63'},
-        {label: '5 ⭐', color: '#9C27B0'},
-        {label: '💩', color: '#795548'},
-        {label: '1.5 ⭐', color: '#3F51B5'},
-        {label: '💩', color: '#795548'},
-        {label: '3 ⭐', color: '#03A9F4'},
-        {label: '💩', color: '#795548'},
-        {label: '0.8 ⭐', color: '#009688'},
-        {label: '7 ⭐', color: '#607D8B'},
-        {label: '2 ⭐', color: '#FF5722'}
-    ];
-
-    // Function to create prize cells dynamically
-    function createPrizeCells() {
-        const prizeCellWidth = 100; // Width of each cell in pixels
-        prizes.forEach(prize => {
-            const cell = document.createElement('div');
-            cell.classList.add('prize-cell');
-            cell.style.backgroundColor = prize.color;
-
-            if (prize.label === '💩') {
-                cell.innerHTML = '<span class="emoji">💩</span>';
-            } else {
-                cell.textContent = prize.label;
-            }
-
-            prizeContainer.appendChild(cell);
-        });
-
-        // Clone the prize cells to create a seamless loop
-        prizes.forEach(prize => {
-            const cell = document.createElement('div');
-            cell.classList.add('prize-cell');
-            cell.style.backgroundColor = prize.color;
-
-            if (prize.label === '💩') {
-                cell.innerHTML = '<span class="emoji">💩</span>';
-            } else {
-                cell.textContent = prize.label;
-            }
-
-            prizeContainer.appendChild(cell);
-        });
-
-
-        // Set the width of the prize container to accommodate all cells
-        prizeContainer.style.width = (prizes.length * 2 * prizeCellWidth) + 'px';
-    }
-
-    // Call the function to create prize cells
-    createPrizeCells();
-
-
-    // Function to get the last spin time from local storage
-    function getLastSpinTime() {
-        return localStorage.getItem('lastSpinTime');
-    }
-
-    // Function to save the current spin time to local storage
-    function setLastSpinTime() {
-        localStorage.setItem('lastSpinTime', Date.now());
-    }
-
-    // Function to calculate the time left until the next spin
-    function calculateTimeLeft() {
-        const lastSpinTime = getLastSpinTime();
-        if (lastSpinTime) {
-            const nextSpinTime = parseInt(lastSpinTime) + 24 * 60 * 60 * 1000; // 24 hours
-            const now = Date.now();
-            timeLeft = nextSpinTime - now;
-
-            if (timeLeft > 0) {
-                canSpin = false;
-                spinButton.disabled = true;
-            } else {
-                canSpin = true;
-                spinButton.disabled = false;
-                timeLeft = 0;
-            }
-        } else {
-            canSpin = true;
-            spinButton.disabled = false;
-            timeLeft = 0;
-        }
-    }
-
-    // Function to update the timer
-    function updateTimer() {
-        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        timerDiv.textContent = `До следующего вращения: ${hours}ч ${minutes}м ${seconds}с`;
-    }
-
-    // Function to start the timer
-    function startTimer() {
-        calculateTimeLeft();
-        updateTimer();
-        timerInterval = setInterval(() => {
-            timeLeft -= 1000;
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                canSpin = true;
-                spinButton.disabled = false;
-                timerDiv.textContent = '';
-            } else {
-                updateTimer();
-            }
-        }, 1000);
-    }
-
-    // Function to request the balance from the Telegram bot
-    function requestBalance() {
-        if (window.Telegram && window.Telegram.WebApp) {
-            const web_app = window.Telegram.WebApp;
-            web_app.sendData(JSON.stringify({ action: 'getBalance' })); // Request balance from bot
-        } else {
-            console.log("Telegram WebApp not available. Cannot request balance.");
-            balanceDiv.textContent = 'Не удалось загрузить баланс.';
-        }
-    }
-
-    // Function to set the balance
-    function setBalance(balance) {
-        balanceDiv.textContent = `${balance} ⭐`;
-    }
-
-    // Call requestBalance when the page loads
-    requestBalance();
-
-    // Initial check on page load
-    startTimer();
-
-    spinButton.addEventListener('click', () => {
-        if (canSpin) {
-            canSpin = false;
-            spinButton.disabled = true;
-            setLastSpinTime();
-
-            const prizeCellWidth = 100;
-            const numPrizes = prizes.length;
-            const randomOffset = Math.floor(Math.random() * numPrizes); // Randomize stopping point
-            const distance = numPrizes * prizeCellWidth + randomOffset * prizeCellWidth;  // Distance to scroll past + random stop
-
-            prizeContainer.style.transition = 'none'; //disable transition for initial move
-            prizeContainer.style.transform = `translateX(0px)`; //reset position
-
-            requestAnimationFrame(() => { //wait for the DOM to update
-                 prizeContainer.style.transition = `transform 5s cubic-bezier(0.25, 0.46, 0.45, 0.94)`;
-                 prizeContainer.style.transform = `translateX(-${distance}px)`;
+        function createTickets() {
+            const roulette = document.getElementById('roulette');
+            roulette.innerHTML = '';
+            const extendedTickets = [...initialTickets, ...initialTickets, ...initialTickets];
+            extendedTickets.forEach(text => {
+                const ticket = document.createElement('div');
+                ticket.classList.add('ticket');
+                ticket.textContent = text;
+                roulette.appendChild(ticket);
             });
+        }
+
+        function spinRoulette() {
+            if (!canSpin) return;
+            canSpin = false;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('message').textContent = "";
+            
+            const roulette = document.getElementById('roulette');
+            const tickets = document.querySelectorAll('.ticket');
+            const ticketHeight = tickets[0].offsetHeight + 10;
+            
+            const spinTo = Math.floor(Math.random() * (tickets.length - initialTickets.length)) * ticketHeight;
+            
+            roulette.style.transition = 'transform 4s ease-out';
+            roulette.style.transform = `translateY(-${spinTo}px)`;
 
             setTimeout(() => {
-                const winningIndex = randomOffset % numPrizes; // Index of the winning prize (accounting for offset)
-                const winningPrize = prizes[winningIndex];
-
-                let resultText = '';
-                if (winningPrize.label === '💩') {
-                    resultText = 'Вы проиграли! <span class="emoji">💩</span>';
-                } else {
-                    resultText = `Вы выиграли: ${winningPrize.label}!`;
+                const identifier = document.getElementById('identifier');
+                const identifierRect = identifier.getBoundingClientRect();
+                const winningTicket = Array.from(tickets).find(ticket => {
+                    const ticketRect = ticket.getBoundingClientRect();
+                    return ticketRect.top + ticketRect.height / 2 >= identifierRect.top && ticketRect.top + ticketRect.height / 2 <= identifierRect.bottom;
+                });
+                if (winningTicket) {
+                    document.getElementById('message').textContent = `Вы выиграли ${winningTicket.textContent}!`;
                 }
-                resultDiv.innerHTML = resultText;
-
-                // Send winning prize data to the bot
-                if (window.Telegram && window.Telegram.WebApp) {
-                    const web_app = window.Telegram.WebApp;
-                    web_app.sendData(JSON.stringify({ prize: winningPrize.label }));
-                } else {
-                    console.log("Telegram WebApp not available");
-                    resultDiv.innerHTML += " (Data not sent to bot)";
-                }
-
-                startTimer();
-            }, 5000); // Time matches the transition duration
+                canSpin = true;
+                document.getElementById('spinBtn').disabled = false;
+            }, 4000);
         }
-    });
-</script>
 
+        createTickets();
+    </script>
 </body>
 </html>
