@@ -12,14 +12,11 @@
             justify-content: center;
             height: 100vh;
             background: radial-gradient(circle, #1a1a2e, #16213e, #0f3460);
-            background-image: url('IMG_20240726_125721_432.jpg');
             color: white;
             font-family: Arial, sans-serif;
+            overflow: hidden;
         }
         h1 {
-            background: linear-gradient(45deg, #5bcdf0, #a049cc);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
             font-size: 2em;
         }
         .roulette-container {
@@ -28,43 +25,44 @@
             height: 350px;
             overflow: hidden;
             border: 3px solid #00ffff;
-            border-radius: 50px;
-            background-color: #222;
+            border-radius: 50%;
+            background: radial-gradient(circle, #444, #111);
+            box-shadow: 0px 10px 20px rgba(0, 255, 255, 0.5);
             margin-bottom: 20px;
+            animation: neon-glow 2s infinite alternate;
         }
-        .ticket {
-            padding: 30px;
-            text-align: center;
-            margin: 5px;
-            border-radius: 50px;
-            transition: opacity 0.5s ease-out;
-            color: white;
-            font-weight: bold;
+        @keyframes neon-glow {
+            0% { box-shadow: 0px 0px 5px #00ffff; }
+            50% { box-shadow: 0px 0px 20px #00ffff; }
+            100% { box-shadow: 0px 0px 5px #00ffff; }
         }
-        .ticket:nth-child(odd) {
-            background: linear-gradient(45deg, #5bcdf0, #a049cc);
-        }
-        .ticket:nth-child(even) {
-            background: linear-gradient(45deg, #a049cc, #5bcdf0);
+        .pointer {
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 20px solid red;
         }
         .identifier {
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 320px;
+            width: 280px;
             height: 50px;
             top: 50%;
-            border: 3px solid #435257;
-            border-radius: 25px;
-            background-color: rgba(67, 82, 87, 0.5);
-        }
-        .arrow {
-            position: absolute;
-            left: 50%;
-            top: calc(50% - 30px);
-            transform: translateX(-50%);
-            font-size: 40px;
-            color: #435257;
+            border: 3px solid #ff4500;
+            background: rgba(0, 0, 0, 0.7);
+            color: yellow;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
         }
         .message {
             margin-top: 20px;
@@ -80,30 +78,55 @@
             border-radius: 20px;
             cursor: pointer;
             background: linear-gradient(45deg, #ff6a00, #ee0979);
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-            margin-top: 10px;
+            box-shadow: 0px 5px 15px rgba(255, 105, 180, 0.5);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         #spinBtn:hover {
             background: linear-gradient(45deg, #ff4500, #d40078);
+            transform: scale(1.1);
+        }
+        #spinBtn:active {
+            transform: scale(0.9);
+            box-shadow: 0px 2px 5px rgba(255, 105, 180, 0.3);
+        }
+        #timer {
+            font-size: 16px;
+            margin-top: 10px;
+            color: orange;
+        }
+        @keyframes sparkle {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+        .sparkle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: gold;
+            border-radius: 50%;
+            animation: sparkle 1s forwards;
         }
     </style>
 </head>
 <body>
     <h1>Рулетка со звездами</h1>
     <div class="roulette-container">
+        <div class="pointer"></div>
         <div class="roulette" id="roulette"></div>
-        <div class="identifier" id="identifier"></div>
-        <div class="arrow">▼</div>
+        <div class="identifier" id="identifier">?</div>
     </div>
     <button id="spinBtn" onclick="spinRoulette()">Крутить</button>
     <div class="message" id="message"></div>
-    
+    <div id="timer"></div>
+
+    <audio id="spinSound" src="spin.mp3"></audio>
+    <audio id="winSound" src="win.mp3"></audio>
+
     <script>
         let canSpin = true;
-        const initialTickets = [
-            "⭐ 10 звезд", "⭐ 5 звезд", "⭐ 1 звезда", "⭐ 20 звезд", "⭐ 50 звезд", "⭐ 100 звезд", "⭐ 500 звезд", "⭐ 1000 звезд", "⭐ 5000 звезд"
-        ];
-
+        const initialTickets = ["⭐ 10 звезд", "⭐ 5 звезд", "⭐ 1 звезда", "⭐ 20 звезд", "⭐ 50 звезд", "⭐ 100 звезд"];
+        
         function createTickets() {
             const roulette = document.getElementById('roulette');
             roulette.innerHTML = '';
@@ -116,57 +139,73 @@
             });
         }
 
-        function updateTicketOpacity() {
-            const tickets = document.querySelectorAll('.ticket');
-            const identifier = document.getElementById('identifier');
-            const identifierRect = identifier.getBoundingClientRect();
-            
-            tickets.forEach(ticket => {
-                const ticketRect = ticket.getBoundingClientRect();
-                if (
-                    ticketRect.top + ticketRect.height / 2 >= identifierRect.top && 
-                    ticketRect.top + ticketRect.height / 2 <= identifierRect.bottom
-                ) {
-                    ticket.style.opacity = '1';
-                } else {
-                    ticket.style.opacity = '0.5';
-                }
-            });
-        }
-
         function spinRoulette() {
             if (!canSpin) return;
+
+            const now = new Date().getTime();
+            const lastSpin = localStorage.getItem("lastSpin") || sessionStorage.getItem("lastSpin");
+
+            if (lastSpin && now - lastSpin < 24 * 60 * 60 * 1000) {
+                alert("Вы уже крутили рулетку сегодня! Попробуйте снова через 24 часа.");
+                return;
+            }
+
+            localStorage.setItem("lastSpin", now);
+            sessionStorage.setItem("lastSpin", now);
+            updateTimer();
+
             canSpin = false;
             document.getElementById('spinBtn').disabled = true;
             document.getElementById('message').textContent = "";
-            
+            document.getElementById('identifier').textContent = "?";
+            document.getElementById('spinSound').play();
+
             const roulette = document.getElementById('roulette');
             const tickets = document.querySelectorAll('.ticket');
-            const ticketHeight = tickets[0].offsetHeight + 10;
-            
-            const spinTo = Math.floor(Math.random() * (tickets.length - initialTickets.length)) * ticketHeight;
-            
-            roulette.style.transition = 'transform 4s ease-out';
-            roulette.style.transform = `translateY(-${spinTo}px)`;
+
+            let totalRotation = 3600 + Math.floor(Math.random() * 360);
+            roulette.style.transition = 'transform 5s cubic-bezier(0.17, 0.67, 0.83, 0.67)';
+            roulette.style.transform = `rotate(${totalRotation}deg)`;
 
             setTimeout(() => {
-                updateTicketOpacity();
                 const identifier = document.getElementById('identifier');
-                const identifierRect = identifier.getBoundingClientRect();
-                const winningTicket = Array.from(tickets).find(ticket => {
-                    const ticketRect = ticket.getBoundingClientRect();
-                    return ticketRect.top + ticketRect.height / 2 >= identifierRect.top && ticketRect.top + ticketRect.height / 2 <= identifierRect.bottom;
-                });
+                const winIndex = Math.floor(Math.random() * tickets.length);
+                const winningTicket = tickets[winIndex];
+
                 if (winningTicket) {
+                    const winAmount = winningTicket.textContent.match(/\d+/)[0];
+                    identifier.textContent = winningTicket.textContent;
                     document.getElementById('message').textContent = `Вы выиграли ${winningTicket.textContent}!`;
+                    document.getElementById('winSound').play();
+
+                    tickets.forEach(ticket => ticket.style.opacity = "0.5");
+                    winningTicket.style.opacity = "1";
+                    winningTicket.style.border = "2px solid gold";
+                    winningTicket.style.boxShadow = "0px 0px 15px gold";
+
+                    createSparkles();
+                } else {
+                    document.getElementById('message').textContent = "Увы, вы ничего не получили.";
                 }
+
                 canSpin = true;
-                document.getElementById('spinBtn').disabled = false;
-            }, 4000);
+                document.getElementById('spinBtn').disabled = true;
+            }, 5000);
+        }
+
+        function createSparkles() {
+            for (let i = 0; i < 10; i++) {
+                const sparkle = document.createElement("div");
+                sparkle.classList.add("sparkle");
+                sparkle.style.left = `${Math.random() * 100}%`;
+                sparkle.style.top = `${Math.random() * 100}%`;
+                document.body.appendChild(sparkle);
+                setTimeout(() => sparkle.remove(), 1000);
+            }
         }
 
         createTickets();
-        setInterval(updateTicketOpacity, 100);
+        updateTimer();
     </script>
 </body>
 </html>
