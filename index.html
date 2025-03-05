@@ -131,7 +131,7 @@
                 return;
             }
 
-            fetch("https://yourserver.com/update_balance", {
+            fetch("http://localhost:8000/update_balance", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId, amount: amount })
