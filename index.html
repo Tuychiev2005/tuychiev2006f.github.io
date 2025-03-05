@@ -159,6 +159,61 @@
         }
 
         createTickets();
-    </script>
+    <script>
+    function sendResultToBot(amount) {
+        const userId = new URLSearchParams(window.location.search).get('user_id');
+        if (!userId) {
+            console.error("User ID не найден");
+            return;
+        }
+
+        fetch("https://yourserver.com/update_balance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, amount: amount })
+        })
+        .then(response => response.json())
+        .then(data => console.log("Баланс обновлён:", data))
+        .catch(error => console.error("Ошибка:", error));
+    }
+
+    function spinRoulette() {
+        if (!canSpin) return;
+        canSpin = false;
+        document.getElementById('spinBtn').disabled = true;
+        document.getElementById('message').textContent = "";
+        document.getElementById('identifier').textContent = "?";
+        
+        const roulette = document.getElementById('roulette');
+        const tickets = document.querySelectorAll('.ticket');
+        const ticketHeight = tickets[0].offsetHeight + 10;
+        
+        const spinTo = Math.floor(Math.random() * (tickets.length - initialTickets.length)) * ticketHeight;
+        
+        roulette.style.transition = 'transform 4s ease-out';
+        roulette.style.transform = translateY(-${spinTo}px);
+
+        setTimeout(() => {
+            const identifier = document.getElementById('identifier');
+            const identifierRect = identifier.getBoundingClientRect();
+            const winningTicket = Array.from(tickets).find(ticket => {
+                const ticketRect = ticket.getBoundingClientRect();
+                return ticketRect.top + ticketRect.height / 2 >= identifierRect.top && ticketRect.top + ticketRect.height / 2 <= identifierRect.bottom;
+            });
+
+            if (winningTicket) {
+                identifier.textContent = winningTicket.textContent;
+                const reward = parseInt(winningTicket.textContent.replace(/\D/g, ""));
+                sendResultToBot(reward);
+                document.getElementById('message').textContent = Вы выиграли ${reward} ⭐!;
+            } else {
+                document.getElementById('message').textContent = "Увы, вы ничего не получили.";
+            }
+
+            canSpin = true;
+            document.getElementById('spinBtn').disabled = false;
+        }, 4000);
+    }
+</script>
 </body>
 </html>
